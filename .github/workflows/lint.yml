@@ -1,0 +1,16 @@
+name: Lint
+
+on:
+  workflow_run:
+    workflows: ["Format"]
+    types:
+      - completed
+
+jobs:
+  lint:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add clippy
+      - run: cargo clippy -- -D warnings
