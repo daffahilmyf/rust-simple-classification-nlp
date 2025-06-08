@@ -10,11 +10,14 @@ jobs:
   build:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-rust@v1
         with:
           rust-version: stable
+
       - uses: actions/cache@v3
         with:
           path: |
@@ -22,4 +25,28 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo build --release
+
+      - name: Cache LibTorch
+        id: cache-libtorch
+        uses: actions/cache@v3
+        with:
+          path: ~/libtorch
+          key: libtorch-linux-cpu-2.4.0
+
+      - name: Download LibTorch if not cached
+        if: steps.cache-libtorch.outputs.cache-hit != 'true'
+        run: |
+          curl -LO https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.4.0%2Bcpu.zip
+          unzip libtorch-cxx11-abi-shared-with-deps-2.4.0+cpu.zip
+          mv libtorch $HOME/libtorch
+
+      - name: Set LibTorch environment variables
+        run: |
+          echo "LIBTORCH=$HOME/libtorch" >> $GITHUB_ENV
+          echo "LIBTORCH_INCLUDE=$HOME/libtorch" >> $GITHUB_ENV
+          echo "LIBTORCH_LIB=$HOME/libtorch" >> $GITHUB_ENV
+          echo "LIBTORCH_BYPASS_VERSION_CHECK=1" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$HOME/libtorch/lib" >> $GITHUB_ENV
+
+      - name: Build with Cargo
+        run: cargo build --release
