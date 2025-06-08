@@ -2,7 +2,7 @@ name: Lint
 
 on:
   workflow_run:
-    workflows: ["Format"]
+    workflows: ["Setup", "Format"]
     types:
       - completed
 
